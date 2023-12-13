@@ -19,7 +19,11 @@ Route::get('/', function () {
     $articles = \App\Models\Article::all();
     return view('pages.mainPage', ['articles' => $articles]);
 });
-Route::view('/addArticle', 'pages.addArticle');
+Route::get('/profile', function (){
+    $user = auth()->user();
+    return view('pages.profile', ['user'=>$user]);
+});
+Route::view('/addArticle', 'pages.addArticle')->middleware('auth');
 Route::post('/addArticle', function (Request $request) {
     $title = $request->title;
     $content = $request->article;
@@ -30,17 +34,29 @@ Route::post('/addArticle', function (Request $request) {
     $article->author = $author;
     $article->save();
     return redirect()->intended('/');
-});
+})->middleware('auth');
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+//Route::middleware('auth')->group(function () {
+//    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+//    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+//    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+//});
 Route::get('/blog/{id}', function (Request $request){
     $article = \App\Models\Article::where('id', $request->id)->first();
-    return view('pages.blog', ['article'=>$article]);
+    $comments = \App\Models\Comment::all();
+    return view('pages.blog', ['article'=>$article], ['comments' => $comments]);
+});
+Route::post('/addComment', function (Request $request){
+    $comment = $request->comment;
+    $articleId = $request->articleId;
+    $userId = auth()->user()->getAuthIdentifier();
+    $commentModel = new \App\Models\Comment();
+    $commentModel->user_id = $userId;
+    $commentModel->comment = $comment;
+    $commentModel->article_id = $articleId;
+    $commentModel->save();
+    return redirect()->intended('/');
 });
 require __DIR__ . '/auth.php';
